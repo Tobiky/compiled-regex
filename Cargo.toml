@@ -5,9 +5,7 @@ name = "compiled-regex"
 version = "0.1.0"
 edition = "2021"
 
-[workspace]
-members = [
-    "compiled-regex-cli"
-]
+[lib]
+proc-macro = true
 
 [dependencies]
