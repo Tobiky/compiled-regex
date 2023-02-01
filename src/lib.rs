@@ -1,14 +1,9 @@
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
+mod class;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+use proc_macro;
+use proc_macro::TokenStream;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+#[proc_macro]
+pub fn regex(_tokens: TokenStream) -> TokenStream {
+
 }
