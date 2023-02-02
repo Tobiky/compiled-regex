@@ -1,4 +1,4 @@
-mod class;
+mod types;
 
 use proc_macro;
 use proc_macro::TokenStream;
