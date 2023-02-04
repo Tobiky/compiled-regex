@@ -1,3 +1,5 @@
+use compiled_regex::regex;
+
 fn main() {
-    println!("Hello, world!");
+    regex!(abc42+);
 }
