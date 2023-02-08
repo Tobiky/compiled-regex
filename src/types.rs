@@ -1,11 +1,82 @@
 pub trait RegExp
 where Self: Sized
 {
+    /// Returns true if the search string contains the RegEx pattern, otherwise false.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// regex!(MyRegex = "abc");
+    ///
+    /// fn main() {
+    ///     let search = "aabcabccbabc";
+    ///     for match in MyRegex::matches(search) {
+    ///         println!("{}", search[match.0..match.1]);
+    ///     }
+    /// }
+    /// ```
     fn is_match(&self, input: &str) -> bool;
+
+    /// Finds all non-intersecting matches within the search string, if any.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// regex!(MyRegex = "abc");
+    ///
+    /// fn main() {
+    ///     let search = "aabcabccbabc";
+    ///     for match in MyRegex::matches(search) {
+    ///         println!("{}", search[match.0..match.1]);
+    ///     }
+    /// }
+    /// ```
     fn matches(&self, input: &str) -> Matches<Self>;
+
+    /// Finds the first match, if any, and returns it as the start and ending
+    /// positions of the match in the search string.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// regex!(MyRegex = "aabc");
+    ///
+    /// fn main() {
+    ///     let match = MyRegex::matches("qeaabce");
+    ///     assert_eq!(Some((2, 5)), match);
+    ///
+    ///     let match = MyRegex::matches("abra");
+    ///     assert_eq!(None, match);
+    /// }
+    /// ```
     fn find_match(&self, input: &str) -> Option<(usize, usize)>;
+
+    /// Find the match, if any, for the RegExp starting exactly at the given
+    /// offset in the input string. The match is returned as the start and
+    /// end positions of the match in the search string.
+    ///
+    /// This function is intended for internal use only.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// fn matches_regexp_from_start<R: RegExp>(regexp: &R, input: &str) -> bool {
+    ///     regexp.find_match_at(input, 0)
+    /// }
+    /// ```
     fn find_match_at(&self, input: &str, offset: usize) -> Option<(usize, usize)>;
 
+    /// The length of the minimum string that would be valid to the RegExp.
+    ///
+    /// This constant is intended for internal use only.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// fn fits_my_regexp<R: RegExp>(input: &str) -> bool {
+    ///     input.len() >= R::MIN_LEN
+    /// }
+    /// ```
     const MIN_LEN: usize;
 }
 
