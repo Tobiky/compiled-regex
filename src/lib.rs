@@ -1,9 +1,14 @@
 mod types;
+#[macro_use] mod code_gen_util;
+
+use regex_syntax::Parser;
 
 use proc_macro;
 use proc_macro::TokenStream;
 
 #[proc_macro]
 pub fn regex(tokens: TokenStream) -> TokenStream {
-    return format!(r#"println!("\"{{}}\"", "{}")"#, tokens.to_string()).parse().unwrap()
+    let inp = tokens.to_string();
+    let nme = regex_struct_name!(inp.clone());
+    return format!(r##"println!("\"{{}}\" = {{}}", r#"{}"#, r#"{}"#)"##, inp, nme).parse().unwrap()
 }
