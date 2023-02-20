@@ -12,7 +12,7 @@ macro_rules! sha256str {
     };
 }
 
-macro_rules! regex_struct_name {
+macro_rules! regex_name {
     ($rgx:expr) => {
         {
             let mut hex = sha256str!($rgx);
