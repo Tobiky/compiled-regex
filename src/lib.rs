@@ -1,14 +1,16 @@
-mod types;
-#[macro_use] mod code_gen_util;
+pub use compiled_regex_macro::parse_regex;
+pub use compiled_regex_core::types;
 
-use regex_syntax::Parser;
-
-use proc_macro;
-use proc_macro::TokenStream;
-
-#[proc_macro]
-pub fn regex(tokens: TokenStream) -> TokenStream {
-    let inp = tokens.to_string();
-    let nme = regex_struct_name!(inp.clone());
-    return format!(r##"println!("\"{{}}\" = {{}}", r#"{}"#, r#"{}"#)"##, inp, nme).parse().unwrap()
+#[macro_export]
+macro_rules! regex {
+    // Only for testing purposes, should not be in final product
+    ($regex:literal) => {
+        #[macro_use] compiled_regex::parse_regex!($regex);
+    };
+    ($name:ident = $regex:literal) => {
+        #[macro_use] type $name = compiled_regex::parse_regex!($regex);
+    };
+    ($name:ident : $regex:literal) => {
+        #[macro_use] compiled_regex::regex!($name = $regex);
+    };
 }

@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 pub trait RegExp
 where Self: Sized
 {
@@ -15,7 +17,22 @@ where Self: Sized
     ///     }
     /// }
     /// ```
-    fn is_match(&self, input: &str) -> bool;
+    fn is_match(input: &str) -> bool;
+
+
+    /// Find if there is a match for the RegExp starting exactly at the given
+    /// offset in the input string.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// regex!(MyRegex = "a\w");
+    ///
+    /// fn matches_regexp_from_start(input: &str) -> bool {
+    ///     MyRegex::find_match_at(input, 0)
+    /// }
+    /// ```
+    fn is_match_at(input: &str, offset: usize) -> bool;
 
     /// Finds all non-intersecting matches within the search string, if any.
     ///
@@ -31,7 +48,9 @@ where Self: Sized
     ///     }
     /// }
     /// ```
-    fn matches(&self, input: &str) -> Matches<Self>;
+    fn matches(input: &str) -> Matches<Self> {
+        Matches { pos: 0, inp: input, reg: PhantomData }
+    }
 
     /// Finds the first match, if any, and returns it as the start and ending
     /// positions of the match in the search string.
@@ -49,32 +68,32 @@ where Self: Sized
     ///     assert_eq!(None, match);
     /// }
     /// ```
-    fn find_match(&self, input: &str) -> Option<(usize, usize)>;
+    fn find_match(input: &str) -> Option<(usize, usize)>;
 
     /// Find the match, if any, for the RegExp starting exactly at the given
     /// offset in the input string. The match is returned as the start and
     /// end positions of the match in the search string.
     ///
-    /// This function is intended for internal use only.
-    ///
     /// # Examples
     ///
     /// ```rust
-    /// fn matches_regexp_from_start<R: RegExp>(regexp: &R, input: &str) -> bool {
-    ///     regexp.find_match_at(input, 0)
+    /// regex!(MyRegex = "aabc");
+    ///
+    /// fn matches_regexp_from_start(input: &str) -> bool {
+    ///     MyRegex::find_match_at(input, 0)
     /// }
     /// ```
-    fn find_match_at(&self, input: &str, offset: usize) -> Option<(usize, usize)>;
+    fn find_match_at(input: &str, offset: usize) -> Option<(usize, usize)>;
 
     /// The length of the minimum string that would be valid to the RegExp.
     ///
-    /// This constant is intended for internal use only.
-    ///
     /// # Examples
     ///
     /// ```rust
-    /// fn fits_my_regexp<R: RegExp>(input: &str) -> bool {
-    ///     input.len() >= R::MIN_LEN
+    /// regex!(MyRegex = "aabc");
+    ///
+    /// fn fits_my_regexp(input: &str) -> bool {
+    ///     input.len() >= MyRegex::MIN_LEN
     /// }
     /// ```
     const MIN_LEN: usize;
@@ -83,7 +102,7 @@ where Self: Sized
 pub struct Matches<'input_lifetime, R: RegExp> {
     pos: usize,
     inp: &'input_lifetime str,
-    reg: R,
+    reg: PhantomData<R>,
 }
 
 impl<'t, R: RegExp> Iterator for Matches<'t, R> {
@@ -95,7 +114,7 @@ impl<'t, R: RegExp> Iterator for Matches<'t, R> {
         // than the minimum constructable length from the regex
         while self.pos + R::MIN_LEN < self.inp.len() {
             // Find the next matching location that starts exactly at position
-            let location_match = self.reg.find_match_at(self.inp, self.pos);
+            let location_match = R::find_match_at(self.inp, self.pos);
 
             // Found a matching location, return it
             if let Some(range) = location_match {
@@ -112,3 +131,9 @@ impl<'t, R: RegExp> Iterator for Matches<'t, R> {
         None
     }
 }
+
+#[derive(Debug)]
+pub enum CompileError {
+    UnexpectedToken(usize, usize)
+}
+

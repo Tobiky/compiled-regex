@@ -1,16 +1,16 @@
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [package]
 name = "compiled-regex"
 version = "0.1.0"
 edition = "2021"
 
-[lib]
-proc-macro = true
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[workspace]
+members = [
+    "./compiled-regex-core",
+    "./compiled-regex-macro"
+]
 
 [dependencies]
-hex = "0.4.3"
-memchr = "2.5.0"
-regex-syntax = "0.6.28"
-sha2 = "0.10.6"
-
+compiled-regex-core = {path = "./compiled-regex-core"}
+compiled-regex-macro = {path = "./compiled-regex-macro"}

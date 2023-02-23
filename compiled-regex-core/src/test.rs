@@ -1,11 +1,8 @@
-use compiled_regex::regex;
-
-use compiled_regex::types::RegExp;
 #[allow(non_camel_case_types)] #[allow(non_snake_case)] mod __m__ca978112ca1bbdcafac231b39a23dc4d {
-pub struct __ca978112ca1bbdcafac231b39a23dc4d();
-use compiled_regex::types::RegExp;
 
-impl RegExp for __ca978112ca1bbdcafac231b39a23dc4d {
+pub struct __ca978112ca1bbdcafac231b39a23dc4d();
+
+impl crate::types::RegExp for __ca978112ca1bbdcafac231b39a23dc4d {
     const MIN_LEN: usize = 1;
 
     #[inline(always)]
@@ -43,9 +40,3 @@ impl RegExp for __ca978112ca1bbdcafac231b39a23dc4d {
 }
 }
 type MyRegex = __m__ca978112ca1bbdcafac231b39a23dc4d::__ca978112ca1bbdcafac231b39a23dc4d;
-
-// regex!(r"a");
-
-fn main() {
-    println!("{}", MyRegex::is_match("bbb"));
-}
