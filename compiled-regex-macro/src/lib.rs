@@ -32,6 +32,8 @@ pub fn parse_regex(tokens: TokenStream) -> TokenStream {
 
                     return //format!(r###"println!(r##"{}"##)"###, code)
                         code
+                        .replace("{{", "{")
+                        .replace("}}", "}")
                         .parse()
                         .unwrap()
                 }
