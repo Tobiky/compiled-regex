@@ -25,7 +25,7 @@ pub fn parse_regex(tokens: TokenStream) -> TokenStream {
                                        code);
 
                     let code = format!(
-                        "{}\ntype MyRegex = __m{}::{};",
+                        "{}\ntype Regex = __m{}::{};",
                         code,
                         name,
                         name);
