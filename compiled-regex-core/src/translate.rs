@@ -1,3 +1,0 @@
-fn translate_literal() {
-
-}

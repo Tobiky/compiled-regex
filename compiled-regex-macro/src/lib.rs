@@ -2,17 +2,13 @@ use compiled_regex_core::regex_syntax::ast::parse::Parser;
 use compiled_regex_core::ir;
 use compiled_regex_core::ir::IR;
 
-use proc_macro;
+use proc_macro::{self, TokenTree};
 use proc_macro::TokenStream;
 
-#[proc_macro]
-pub fn parse_regex(tokens: TokenStream) -> TokenStream {
-    let inp = tokens.to_string();
-    let inp = inp[inp.find('"').unwrap() + 1..inp.rfind('"').unwrap()].to_string();
-    // let nme = regex_name!(inp.clone());
-    match Parser::new().parse(&inp) {
+fn parse_regex_string(regex: &str) -> String {
+    match Parser::new().parse(regex) {
         Ok(ast) => {
-            match ir::RegExNode::parse(ast) {
+            match ir::RegExNode::parse(&ast) {
                 Ok(reg) => {
                     let types = reg.generate_impl();
                     let implementation = types.iter().next().unwrap();
@@ -30,12 +26,10 @@ pub fn parse_regex(tokens: TokenStream) -> TokenStream {
                         name,
                         name);
 
-                    return //format!(r###"println!(r##"{}"##)"###, code)
+                    return // format!(r###"println!(r##"{}"##);"###, code)
                         code
                         .replace("{{", "{")
                         .replace("}}", "}")
-                        .parse()
-                        .unwrap()
                 }
                 Err(err) => panic!("{:?}", err)
             }
@@ -44,4 +38,14 @@ pub fn parse_regex(tokens: TokenStream) -> TokenStream {
             panic!("{}", error)
         }
     }
+}
+
+#[proc_macro]
+pub fn parse_regex(tokens: TokenStream) -> TokenStream {
+    let inp = tokens.to_string();
+    let inp = inp[inp.find('"').unwrap() + 1..inp.rfind('"').unwrap()].to_string();
+
+    let code = parse_regex_string(&inp);
+
+    return code.parse().unwrap()
 }
