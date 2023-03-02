@@ -132,6 +132,7 @@ impl<'t, R: RegExp> Iterator for Matches<'t, R> {
     }
 }
 
+/// All errors that occur during the compilation
 #[derive(Debug)]
 pub enum CompileError {
     UnexpectedToken(usize, usize)

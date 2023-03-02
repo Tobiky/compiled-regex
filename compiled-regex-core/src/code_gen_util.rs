@@ -1,3 +1,4 @@
+/// Generate the SHA256 string of a value
 macro_rules! sha256str {
     ($str:expr) => {
         {
@@ -12,6 +13,7 @@ macro_rules! sha256str {
     };
 }
 
+/// Get the unique name for a RegEx
 macro_rules! regex_name {
     ($rgx:expr) => {
         {
