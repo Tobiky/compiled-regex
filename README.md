@@ -13,3 +13,14 @@ Datasets to test RegEx on
 RegEx or parsable into RegEx
 
 * [EasyList Advert Blocking List (only URL seciont)](https://easylist.to/easylist/easylist.txt)
+
+## To do
+
+* Optimizations
+  * Generated Code
+    * [ ] Character sequences replacing character concatenation
+    ("ab" should be tried as "ab", not "a" then "b")
+    * [ ] Byte automata instead of using `.chars().nth()`
+    * [ ] Use `MIN_LEN` constant to boundry check strings
+  * Compilation
+    * [ ] Reduce string duplication/copying
