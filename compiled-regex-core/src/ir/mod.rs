@@ -1,5 +1,6 @@
 mod character;
 mod composite;
+mod repetition;
 
 use std::fmt::Display;
 
@@ -7,22 +8,15 @@ use regex_syntax::ast::*;
 
 use crate::types::CompileError;
 
-use character::{Character, character_ranges_to_array};
+use character::{character_ranges_to_array, Character};
 use composite::{Alternation, Concatination};
 
-pub const FIND_MATCH_TYPE_STRING: &'static str =
-    "fn (&str) -> Option<(usize, usize)>";
-pub const FIND_MATCH_AT_TYPE_STRING: &'static str =
-    "fn (&str, usize) -> Option<(usize, usize)>";
-pub const MATCHPE_STRING: &'static str =
-    "fn (&str) -> bool";
-pub const MATCH_AT_TYPE_STRING: &'static str =
-    "fn (&str, usize) -> bool";
+pub const FIND_MATCH_TYPE_STRING: &'static str = "fn (&str) -> Option<(usize, usize)>";
+pub const FIND_MATCH_AT_TYPE_STRING: &'static str = "fn (&str, usize) -> Option<(usize, usize)>";
+pub const MATCHPE_STRING: &'static str = "fn (&str) -> bool";
+pub const MATCH_AT_TYPE_STRING: &'static str = "fn (&str, usize) -> bool";
 
-
-pub const SUB_EXPR_LIST_NAME: &'static str =
-    "SUB_EXPRS";
-
+pub const SUB_EXPR_LIST_NAME: &'static str = "SUB_EXPRS";
 
 // TODO: Set parse input and generate output to type parameters
 /// General trait for Intermediate Representation
@@ -57,7 +51,7 @@ pub struct RegExpImplementation {
     pub name: String,
     /// All subexpressions for this expression, they will be generated
     /// beforehand and can be refered by their `RegExpImplementation.name` field.
-    pub sub_exp: Vec<RegExpImplementation>
+    pub sub_exp: Vec<RegExpImplementation>,
 }
 
 impl Display for RegExpImplementation {
@@ -65,11 +59,12 @@ impl Display for RegExpImplementation {
         // Only overwrite the `matches` definition if a different implementation has been provided.
         let matches = if let Some(m) = &self.matches {
             format!(
- r#"#[inline(always)]
+                r#"#[inline(always)]
     fn matches(input: &str) -> Matches<Self> {{{{
         {}
     }}}}"#,
-                m)
+                m
+            )
         } else {
             String::new()
         };
@@ -77,15 +72,15 @@ impl Display for RegExpImplementation {
         // Only generate constant character range array if at least one
         // exists.
         let char_ranges = if let Some(r) = &self.ranges {
-            format!("\nconst CHAR_RANGES: {};\n",
-                    character_ranges_to_array(r))
+            format!("\nconst CHAR_RANGES: {};\n", character_ranges_to_array(r))
         } else {
             String::new()
         };
 
         // Fill in the skeleton code with all implementations and values
-        write!(f,
-r#"pub struct {}();
+        write!(
+            f,
+            r#"pub struct {}();
 
 #[allow(dead_code)]
 impl {} {{{{
@@ -116,16 +111,17 @@ impl compiled_regex::types::RegExp for {} {{{{
         {}
     }}}}{}
 }}}}"#,
-        self.name,
-        self.name,
-        char_ranges,
-        self.name,
-        self.min_len,
-        self.find_match_at,
-        self.find_match,
-        self.is_match_at,
-        self.is_match,
-        matches)
+            self.name,
+            self.name,
+            char_ranges,
+            self.name,
+            self.min_len,
+            self.find_match_at,
+            self.find_match,
+            self.is_match_at,
+            self.is_match,
+            matches
+        )
     }
 }
 
@@ -139,23 +135,25 @@ pub struct RegExNode(Ast, RegExp);
 pub enum RegExp {
     /// Single character match
     Char(Character),
+    /// Sequences of expressions
     Concat(Concatination),
+    /// Branches of expressions
     Alt(Alternation),
 }
 
 impl IR for RegExNode {
     fn parse(ast: &regex_syntax::ast::Ast) -> Result<Self, CompileError> {
-        Ok(RegExNode(ast.clone(), match ast {
-            // Both a literal and a class of characters fall under
-            // "a single character"
-            Ast::Literal(_) | Ast::Class(_) =>
-                RegExp::Char(Character::parse(ast)?),
-            Ast::Concat(_) =>
-                RegExp::Concat(Concatination::parse(ast)?),
-            Ast::Alternation(_) =>
-                RegExp::Alt(Alternation::parse(ast)?),
-            _ => todo!("todo RegExNode")
-        }))
+        Ok(RegExNode(
+            ast.clone(),
+            match ast {
+                // Both a literal and a class of characters fall under
+                // "a single character"
+                Ast::Literal(_) | Ast::Class(_) => RegExp::Char(Character::parse(ast)?),
+                Ast::Concat(_) => RegExp::Concat(Concatination::parse(ast)?),
+                Ast::Alternation(_) => RegExp::Alt(Alternation::parse(ast)?),
+                _ => todo!("todo RegExNode"),
+            },
+        ))
     }
 
     fn generate_impl(&self) -> Vec<RegExpImplementation> {

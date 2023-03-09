@@ -1,7 +1,6 @@
-use super::{IR, RegExpImplementation, RegExNode, FIND_MATCH_AT_TYPE_STRING, SUB_EXPR_LIST_NAME};
-use regex_syntax::ast::Ast;
+use super::{RegExNode, RegExpImplementation, FIND_MATCH_AT_TYPE_STRING, IR, SUB_EXPR_LIST_NAME};
 use crate::types::CompileError;
-
+use regex_syntax::ast::Ast;
 
 #[derive(Debug)]
 pub struct Concatination(pub Ast, pub Vec<RegExNode>);
@@ -22,7 +21,7 @@ impl IR for Concatination {
                 Ok(Self(ast.clone(), cat))
             }
             // TODO: Improve error and location
-            _ => Err(CompileError::UnexpectedToken(0, 0))
+            _ => Err(CompileError::UnexpectedToken(0, 0)),
         }
     }
 
@@ -38,25 +37,31 @@ impl IR for Concatination {
         // the last subexpression and adding one. The map at the end
         // is to remove the extra + 1 that will come from a successful
         // find.
-        let find_match_at = format!(r"
+        let find_match_at = format!(
+            r"
             const {}: [{}; {}] = [{}];
 
             {}.into_iter().try_fold(offset, |acc, f| Some(f(input, acc)?.1 + 1)).map(|x| (offset, x - 1))",
             SUB_EXPR_LIST_NAME,
             FIND_MATCH_AT_TYPE_STRING,
             impls.len(),
-            impls.iter().map(|x| {
-                let mut access = x.last().unwrap().name.clone();
-                access.push_str("::find_match_at");
-                access
-            }).collect::<Vec<_>>().join(", "),
-            SUB_EXPR_LIST_NAME);
-
+            impls
+                .iter()
+                .map(|x| {
+                    let mut access = x.last().unwrap().name.clone();
+                    access.push_str("::find_match_at");
+                    access
+                })
+                .collect::<Vec<_>>()
+                .join(", "),
+            SUB_EXPR_LIST_NAME
+        );
 
         // Implementation of `find_match` for finding a concatination
         // Loops through all of the indexes of the strnig and applies
         // `find_match_at`
-        let find_match = format!(r"
+        let find_match = format!(
+            r"
             let len = input.chars().count();
 
             for i in 0..len {{{{
@@ -66,7 +71,8 @@ impl IR for Concatination {
                 }}}}
             }}}}
 
-            None");
+            None"
+        );
 
         // Implementation of `is_match_at` for finding a concatination
         // Calls on `find_match_at` on the offset and input to check if
@@ -86,14 +92,15 @@ impl IR for Concatination {
             ranges: None,
             find_match,
             find_match_at,
-            min_len: impls.iter().fold(0, |acc, x| acc + x.last().unwrap().min_len),
+            min_len: impls
+                .iter()
+                .fold(0, |acc, x| acc + x.last().unwrap().min_len),
             exp: self.0.to_owned(),
             name: struct_name,
             sub_exp: Vec::new(),
         }]
     }
 }
-
 
 #[derive(Debug)]
 pub struct Alternation(pub Ast, pub Vec<RegExNode>);
@@ -114,7 +121,7 @@ impl IR for Alternation {
                 Ok(Self(ast.clone(), alt))
             }
             // TODO: Improve error and location
-            _ => Err(CompileError::UnexpectedToken(0, 0))
+            _ => Err(CompileError::UnexpectedToken(0, 0)),
         }
     }
 
@@ -126,25 +133,31 @@ impl IR for Alternation {
         // Implementation of `find_match_at` for finding a concatination
         // Has a list of references to other functions that represent
         // the subexpressions and uses them to find at least one match.
-        let find_match_at = format!(r"
+        let find_match_at = format!(
+            r"
             const {}: [{}; {}] = [{}];
 
             {}.into_iter().find_map(|f| f(input, offset))",
             SUB_EXPR_LIST_NAME,
             FIND_MATCH_AT_TYPE_STRING,
             impls.len(),
-            impls.iter().map(|x| {
-                let mut access = x.last().unwrap().name.clone();
-                access.push_str("::find_match_at");
-                access
-            }).collect::<Vec<_>>().join(", "),
-            SUB_EXPR_LIST_NAME);
-
+            impls
+                .iter()
+                .map(|x| {
+                    let mut access = x.last().unwrap().name.clone();
+                    access.push_str("::find_match_at");
+                    access
+                })
+                .collect::<Vec<_>>()
+                .join(", "),
+            SUB_EXPR_LIST_NAME
+        );
 
         // Implementation of `find_match` for finding a concatination
         // Loops through all of the indexes of the strnig and applies
         // `find_match_at`
-        let find_match = format!(r"
+        let find_match = format!(
+            r"
             let len = input.chars().count();
 
             for i in 0..len {{{{
@@ -154,7 +167,8 @@ impl IR for Alternation {
                 }}}}
             }}}}
 
-            None");
+            None"
+        );
 
         // Implementation of `is_match_at` for finding a concatination
         // Calls on `find_match_at` on the offset and input to check if
@@ -174,7 +188,11 @@ impl IR for Alternation {
             is_match_at,
             find_match,
             find_match_at,
-            min_len: impls.iter().map(|x| x.last().unwrap().min_len).min().unwrap(),
+            min_len: impls
+                .iter()
+                .map(|x| x.last().unwrap().min_len)
+                .min()
+                .unwrap(),
             exp: self.0.to_owned(),
             name: struct_name,
             sub_exp: Vec::new(),

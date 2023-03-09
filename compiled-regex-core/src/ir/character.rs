@@ -1,6 +1,9 @@
-use super::{IR, RegExpImplementation};
-use regex_syntax::{ast::{Ast, Literal}, hir::{HirKind, translate, Class as HirClass}};
+use super::{RegExpImplementation, IR};
 use crate::types::CompileError;
+use regex_syntax::{
+    ast::{Ast, Literal},
+    hir::{translate, Class as HirClass, HirKind},
+};
 
 /// Any possible single character as defined by the RegEx crate "regex" but streamlined for code generation.
 #[derive(Debug)]
@@ -8,7 +11,7 @@ pub enum Character {
     /// A Class or Union of characters, like '\w' or '[A-Z]'
     Class(CharacterClass),
     /// A single simple character, like 'a'
-    Char(CharacterSingle)
+    Char(CharacterSingle),
 }
 
 impl IR for Character {
@@ -18,16 +21,16 @@ impl IR for Character {
 
         if single.is_ok() {
             // Single character parse was successful, return result
-            return single
+            return single;
         } else {
             // If single character parse fails, attempt to parse a character class
             let class = CharacterClass::parse(ast).map(Character::Class);
             if class.is_ok() {
-                return class
+                return class;
             } else {
                 // If the character class parse also fails then return an error
                 // TODO: More specific error; currently just returning the first parse error
-                return single
+                return single;
             }
         }
     }
@@ -53,9 +56,9 @@ impl IR for CharacterSingle {
     fn parse(ast: &Ast) -> Result<Self, CompileError> {
         match ast {
             // All literals can be parsed/interpreted as single characters
-            &Ast::Literal(Literal {c, ..}) => Ok(Self(ast.clone(), c)),
+            &Ast::Literal(Literal { c, .. }) => Ok(Self(ast.clone(), c)),
             // TODO: Improve error and location
-            _ => Err(CompileError::UnexpectedToken(0, 0))
+            _ => Err(CompileError::UnexpectedToken(0, 0)),
         }
     }
 
@@ -67,20 +70,23 @@ impl IR for CharacterSingle {
         // Check if the character at the given offset is the same
         // as the reference character, if so return offset as range.
         let find_match_at = format!(
-     r#"if input.chars().nth(offset) == Some('{}') {{{{
+            r#"if input.chars().nth(offset) == Some('{}') {{{{
             Some((offset, offset))
         }}}} else {{{{
             None
-        }}}}"#, self.1.escape_unicode()
-                    .to_string()
-                    .replace("{", "{{")
-                    .replace("}", "}}"));
+        }}}}"#,
+            self.1
+                .escape_unicode()
+                .to_string()
+                .replace("{", "{{")
+                .replace("}", "}}")
+        );
 
         // Implementation of `find_match` for single characters
         // Searches the entire string for the reference character
         // and returns the character index if it was found.
         let find_match = format!(
-     r#"let mut i = 0;
+            r#"let mut i = 0;
         for c in input.chars() {{{{
             if c == '{}' {{{{
                 return Some((i, i))
@@ -88,30 +94,36 @@ impl IR for CharacterSingle {
             i += 1;
         }}}}
         None"#,
-            self.1.escape_unicode()
-                    .to_string()
-                    .replace("{", "{{")
-                    .replace("}", "}}"));
+            self.1
+                .escape_unicode()
+                .to_string()
+                .replace("{", "{{")
+                .replace("}", "}}")
+        );
 
         // Implementation of `is_match_at` for single characters
         // Checks if the character at the given offset matches the
         // reference character.
         let is_match_at = format!(
             r#"input.chars().nth(offset) == Some('{}')"#,
-            self.1.escape_unicode()
-                    .to_string()
-                    .replace("{", "{{")
-                    .replace("}", "}}"));
+            self.1
+                .escape_unicode()
+                .to_string()
+                .replace("{", "{{")
+                .replace("}", "}}")
+        );
 
         // Implementation of `is_match` for single characters
         // Search the entire string for the reference character,
         // return a boolean for if it exists.
         let is_match = format!(
             r#"input.contains('{}')"#,
-            self.1.escape_unicode()
-                    .to_string()
-                    .replace("{", "{{")
-                    .replace("}", "}}"));
+            self.1
+                .escape_unicode()
+                .to_string()
+                .replace("{", "{{")
+                .replace("}", "}}")
+        );
 
         // Put everything together into the implementation
         vec![RegExpImplementation {
@@ -145,28 +157,35 @@ fn unicode_ranges(ast: &Ast) -> Vec<(char, char)> {
             x.ranges().iter().map(|x| (x.start(), x.end())).collect()
         }
         // Some HIR that can't be used
-        _ => panic!("Unhandled HIR struct")
+        _ => panic!("Unhandled HIR struct"),
     }
 }
 
 pub fn character_ranges_to_array(ranges: &Vec<(char, char)>) -> String {
     // Turn a vector of tuples into a string representing an array of tuples
-    let mut list = ranges.iter()
-        .map(|range|
-             format!(
-                 r"('{}', '{}')",
-                 // Get the unicode literal but with extra braces
-                 // to avoid formatting issues
-                 range.0.escape_unicode()
+    let mut list = ranges
+        .iter()
+        .map(|range| {
+            format!(
+                r"('{}', '{}')",
+                // Get the unicode literal but with extra braces
+                // to avoid formatting issues
+                range
+                    .0
+                    .escape_unicode()
                     .to_string()
                     .replace("{", "{{")
                     .replace("}", "}}"),
-                 // Get the unicode literal but with extra braces
-                 // to avoid formatting issues
-                 range.1.escape_unicode()
+                // Get the unicode literal but with extra braces
+                // to avoid formatting issues
+                range
+                    .1
+                    .escape_unicode()
                     .to_string()
                     .replace("{", "{{")
-                    .replace("}", "}}")))
+                    .replace("}", "}}")
+            )
+        })
         .collect::<Vec<_>>()
         // Join the tuples together with a comma
         .join(", ");
@@ -190,9 +209,9 @@ impl IR for CharacterClass {
                 let ranges = unicode_ranges(&ast);
                 // Create the struct
                 Ok(Self(ast.clone(), ranges))
-            },
+            }
             // TODO: Improve error and location
-            _ => Err(CompileError::UnexpectedToken(0, 0))
+            _ => Err(CompileError::UnexpectedToken(0, 0)),
         }
     }
 
@@ -203,36 +222,37 @@ impl IR for CharacterClass {
         // Implementation of `find_match_at` for single characters
         // Check that the character at the given offset is within
         // any of the character ranges.
-        let find_match_at =
-       "if let Some(c) = input.chars().nth(offset) {{{{
+        let find_match_at = "if let Some(c) = input.chars().nth(offset) {{{{
             if Self::CHAR_RANGES.into_iter().find(|&(l, r)| l <= c && c <= r).is_some() {{{{
                 return Some((offset, offset))
             }}}}
         }}}}
-        None".into();
+        None"
+            .into();
 
         // Implementation of `find_match_at` for single characters
         // Search the string for any character that exists within
         // the character ranges.
-        let find_match =
-       "let mut i = 0;
+        let find_match = "let mut i = 0;
         for c in input.chars() {{{{
             if Self::CHAR_RANGES.into_iter().find(|&(l, r)| l <= c && c <= r).is_some() {{{{
                 return Some((i, i))
             }}}}
             i += 1;
         }}}}
-        None".into();
+        None"
+            .into();
 
         // Implementation of `find_match_at` for single characters
         // Check that the character at the given offset is within
         // any of the character ranges.
         let is_match_at = format!(
-        "if let Some(c) = input.chars().nth(offset) {{{{
+            "if let Some(c) = input.chars().nth(offset) {{{{
             Self::CHAR_RANGES.into_iter().find(|&(l, r)| l <= c && c <= r).is_some()
         }}}} else {{{{
             false
-        }}}}");
+        }}}}"
+        );
 
         // Implementation of `find_match_at` for single characters
         // Search the string for any character that exists within

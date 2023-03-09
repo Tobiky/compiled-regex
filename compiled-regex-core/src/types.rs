@@ -1,7 +1,8 @@
 use std::marker::PhantomData;
 
 pub trait RegExp
-where Self: Sized
+where
+    Self: Sized,
 {
     /// Returns true if the search string contains the RegEx pattern, otherwise false.
     ///
@@ -18,7 +19,6 @@ where Self: Sized
     /// }
     /// ```
     fn is_match(input: &str) -> bool;
-
 
     /// Find if there is a match for the RegExp starting exactly at the given
     /// offset in the input string.
@@ -49,7 +49,11 @@ where Self: Sized
     /// }
     /// ```
     fn matches(input: &str) -> Matches<Self> {
-        Matches { pos: 0, inp: input, reg: PhantomData }
+        Matches {
+            pos: 0,
+            inp: input,
+            reg: PhantomData,
+        }
     }
 
     /// Finds the first match, if any, and returns it as the start and ending
@@ -121,7 +125,7 @@ impl<'t, R: RegExp> Iterator for Matches<'t, R> {
                 // Since a match was found the position needs to be updated to the
                 // ending position of the match since matches are not overlapping.
                 self.pos = range.1;
-                return Some(range)
+                return Some(range);
             } else {
                 // Increment along the search string since there was not match starting
                 // at this position
@@ -135,6 +139,5 @@ impl<'t, R: RegExp> Iterator for Matches<'t, R> {
 /// All errors that occur during the compilation
 #[derive(Debug)]
 pub enum CompileError {
-    UnexpectedToken(usize, usize)
+    UnexpectedToken(usize, usize),
 }
-

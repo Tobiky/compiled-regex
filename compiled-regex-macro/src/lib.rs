@@ -1,10 +1,10 @@
-use compiled_regex_core::regex_syntax::ast::parse::Parser;
-use compiled_regex_core::ir::{self, RegExpImplementation};
 use compiled_regex_core::ir::IR;
+use compiled_regex_core::ir::{self, RegExpImplementation};
+use compiled_regex_core::regex_syntax::ast::parse::Parser;
 
 use compiled_regex_core::types::CompileError;
-use proc_macro::{self, TokenTree};
 use proc_macro::TokenStream;
+use proc_macro::{self, TokenTree};
 
 use itertools::Itertools;
 
@@ -18,11 +18,16 @@ fn parse_regex_string(export_name: &str, regex: &str) -> String {
             match ir::RegExNode::parse(&ast) {
                 Ok(reg) => {
                     // Generate the implementation, get the name, and turn the impl into a string
-                    let impls = reg.generate_impl()
+                    let impls = reg
+                        .generate_impl()
                         .into_iter()
                         .unique_by(|x| x.name.clone())
                         .collect::<Vec<_>>();
-                    let implementation = impls.iter().map(RegExpImplementation::to_string).collect::<Vec<_>>().join("\n\n");
+                    let implementation = impls
+                        .iter()
+                        .map(RegExpImplementation::to_string)
+                        .collect::<Vec<_>>()
+                        .join("\n\n");
                     let name = impls.last().unwrap().name.clone();
 
                     let code = implementation.to_string();
@@ -33,19 +38,14 @@ fn parse_regex_string(export_name: &str, regex: &str) -> String {
                                        code);
 
                     // Temporary anchor for the generated final type
-                    let code = format!(
-                        "{}\ntype {} = __m{}::{};",
-                        code,
-                        export_name,
-                        name,
-                        name);
+                    let code = format!("{}\ntype {} = __m{}::{};", code, export_name, name, name);
 
-                    return code
+                    return code;
                 }
                 // Parsing AST erred, panic and GTFO
-                Err(err) => panic!("{:?}", err)
+                Err(err) => panic!("{:?}", err),
             }
-        },
+        }
         // Could not parse the RegEx
         Err(error) => {
             panic!("{}", error)
@@ -56,7 +56,7 @@ fn parse_regex_string(export_name: &str, regex: &str) -> String {
 fn parse_token_stream(tokens: TokenStream) -> Result<(String, String), CompileError> {
     if tokens.is_empty() {
         // TODO: Should return error describing empty token set
-        return Err(CompileError::UnexpectedToken(0, 0))
+        return Err(CompileError::UnexpectedToken(0, 0));
     }
 
     let mut iter = tokens.into_iter();
@@ -69,11 +69,11 @@ fn parse_token_stream(tokens: TokenStream) -> Result<(String, String), CompileEr
                 s.to_string()
             } else {
                 // TODO: Specify illegal literal type usage
-                return Err(CompileError::UnexpectedToken(0, 0))
+                return Err(CompileError::UnexpectedToken(0, 0));
             }
         }
         // TODO: Specifiy that identity or name is needed
-        _ => return Err(CompileError::UnexpectedToken(0, 0))
+        _ => return Err(CompileError::UnexpectedToken(0, 0)),
     };
 
     // Make sure there is a delimiter inbetween
@@ -83,7 +83,7 @@ fn parse_token_stream(tokens: TokenStream) -> Result<(String, String), CompileEr
         // TODO: Specify that some punctuation is needed
         // currently can be any, not sure if it should be forced
         // to anything specific.
-        return Err(CompileError::UnexpectedToken(0, 0))
+        return Err(CompileError::UnexpectedToken(0, 0));
     }
 
     // Get the regex string literal
@@ -93,11 +93,11 @@ fn parse_token_stream(tokens: TokenStream) -> Result<(String, String), CompileEr
                 s.to_string()
             } else {
                 // TODO: Specify illegal literal type usage
-                return Err(CompileError::UnexpectedToken(0, 0))
+                return Err(CompileError::UnexpectedToken(0, 0));
             }
         }
         // TODO: Specifiy that str literal is needed
-        _ => return Err(CompileError::UnexpectedToken(0, 0))
+        _ => return Err(CompileError::UnexpectedToken(0, 0)),
     };
 
     // Strip surrounding string marks from RegEx literal
@@ -117,7 +117,7 @@ pub fn parse_regex(tokens: TokenStream) -> TokenStream {
     let code = parse_regex_string(&name, &regex);
 
     // Parse the code into Rust tokens
-    return code.replace("{{", "{").replace("}}", "}").parse().unwrap()
+    return code.replace("{{", "{").replace("}}", "}").parse().unwrap();
 }
 
 #[proc_macro]
@@ -130,5 +130,7 @@ pub fn __parse_regex_generative_output(tokens: TokenStream) -> TokenStream {
     let code = parse_regex_string(&name, &regex);
 
     // Parse the code into Rust tokens
-    return format!(r###"println!("{{}}", r##"{}"##)"###, code).parse().unwrap()
+    return format!(r###"println!("{{}}", r##"{}"##)"###, code)
+        .parse()
+        .unwrap();
 }
