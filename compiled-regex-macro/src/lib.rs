@@ -1,10 +1,12 @@
 use compiled_regex_core::regex_syntax::ast::parse::Parser;
-use compiled_regex_core::ir;
+use compiled_regex_core::ir::{self, RegExpImplementation};
 use compiled_regex_core::ir::IR;
 
 use compiled_regex_core::types::CompileError;
 use proc_macro::{self, TokenTree};
 use proc_macro::TokenStream;
+
+use itertools::Itertools;
 
 use litrs::StringLit;
 
@@ -16,9 +18,12 @@ fn parse_regex_string(export_name: &str, regex: &str) -> String {
             match ir::RegExNode::parse(&ast) {
                 Ok(reg) => {
                     // Generate the implementation, get the name, and turn the impl into a string
-                    let impls = reg.generate_impl();
-                    let implementation = impls.iter().next().unwrap();
-                    let name = implementation.name.clone();
+                    let impls = reg.generate_impl()
+                        .into_iter()
+                        .unique_by(|x| x.name.clone())
+                        .collect::<Vec<_>>();
+                    let implementation = impls.iter().map(RegExpImplementation::to_string).collect::<Vec<_>>().join("\n\n");
+                    let name = impls.last().unwrap().name.clone();
 
                     let code = implementation.to_string();
 
@@ -35,13 +40,7 @@ fn parse_regex_string(export_name: &str, regex: &str) -> String {
                         name,
                         name);
 
-                    return
-                        // // Generate code to print the rust code
-                        // format!(r###"println!(r##"{}"##);"###, code)
-                        // Generate plain code (braces have to be normalized)
-                        code
-                        .replace("{{", "{")
-                        .replace("}}", "}")
+                    return code
                 }
                 // Parsing AST erred, panic and GTFO
                 Err(err) => panic!("{:?}", err)
@@ -118,5 +117,18 @@ pub fn parse_regex(tokens: TokenStream) -> TokenStream {
     let code = parse_regex_string(&name, &regex);
 
     // Parse the code into Rust tokens
-    return code.parse().unwrap()
+    return code.replace("{{", "{").replace("}}", "}").parse().unwrap()
+}
+
+#[proc_macro]
+pub fn __parse_regex_generative_output(tokens: TokenStream) -> TokenStream {
+    // Parse the tokens into a name and a RegEx literal
+    // TODO: CompileError report
+    let (name, regex) = parse_token_stream(tokens).unwrap();
+
+    // Parse the RegEx into actual code
+    let code = parse_regex_string(&name, &regex);
+
+    // Parse the code into Rust tokens
+    return format!(r###"println!("{{}}", r##"{}"##)"###, code).parse().unwrap()
 }

@@ -10,4 +10,5 @@ proc-macro = true
 
 [dependencies]
 compiled-regex-core = {path = "../compiled-regex-core"}
+itertools = "0.10.5"
 litrs = "0.3.0"
