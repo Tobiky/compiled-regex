@@ -11,8 +11,10 @@ use crate::types::CompileError;
 use character::{character_ranges_to_array, Character};
 use composite::{Alternation, Concatination};
 
-pub const FIND_MATCH_TYPE_STRING: &'static str = "fn (&str) -> Option<(usize, usize)>";
-pub const FIND_MATCH_AT_TYPE_STRING: &'static str = "fn (&str, usize) -> Option<(usize, usize)>";
+pub const FIND_MATCH_TYPE_STRING: &'static str =
+    "fn (&str) -> Option<(usize, usize)>";
+pub const FIND_MATCH_AT_TYPE_STRING: &'static str =
+    "fn (&str, usize) -> Option<(usize, usize)>";
 pub const MATCHPE_STRING: &'static str = "fn (&str) -> bool";
 pub const MATCH_AT_TYPE_STRING: &'static str = "fn (&str, usize) -> bool";
 
@@ -148,7 +150,9 @@ impl IR for RegExNode {
             match ast {
                 // Both a literal and a class of characters fall under
                 // "a single character"
-                Ast::Literal(_) | Ast::Class(_) => RegExp::Char(Character::parse(ast)?),
+                Ast::Literal(_) | Ast::Class(_) => {
+                    RegExp::Char(Character::parse(ast)?)
+                }
                 Ast::Concat(_) => RegExp::Concat(Concatination::parse(ast)?),
                 Ast::Alternation(_) => RegExp::Alt(Alternation::parse(ast)?),
                 _ => todo!("todo RegExNode"),

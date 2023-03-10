@@ -1,4 +1,7 @@
-use super::{RegExNode, RegExpImplementation, FIND_MATCH_AT_TYPE_STRING, IR, SUB_EXPR_LIST_NAME};
+use super::{
+    RegExNode, RegExpImplementation, FIND_MATCH_AT_TYPE_STRING, IR,
+    SUB_EXPR_LIST_NAME,
+};
 use crate::types::CompileError;
 use regex_syntax::ast::Ast;
 
@@ -77,7 +80,8 @@ impl IR for Concatination {
         // Implementation of `is_match_at` for finding a concatination
         // Calls on `find_match_at` on the offset and input to check if
         // the match exists
-        let is_match_at = format!("Self::find_match_at(input, offset).is_some()");
+        let is_match_at =
+            format!("Self::find_match_at(input, offset).is_some()");
 
         // Implementation of `is_match` for finding a concatination
         // Calls on `find_match` on the offset and input to check if
@@ -173,7 +177,8 @@ impl IR for Alternation {
         // Implementation of `is_match_at` for finding a concatination
         // Calls on `find_match_at` on the offset and input to check if
         // the match exists
-        let is_match_at = format!("Self::find_match_at(input, offset).is_some()");
+        let is_match_at =
+            format!("Self::find_match_at(input, offset).is_some()");
 
         // Implementation of `is_match` for finding a concatination
         // Calls on `find_match` on the offset and input to check if

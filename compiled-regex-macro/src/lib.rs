@@ -38,7 +38,10 @@ fn parse_regex_string(export_name: &str, regex: &str) -> String {
                                        code);
 
                     // Temporary anchor for the generated final type
-                    let code = format!("{}\ntype {} = __m{}::{};", code, export_name, name, name);
+                    let code = format!(
+                        "{}\ntype {} = __m{}::{};",
+                        code, export_name, name, name
+                    );
 
                     return code;
                 }
@@ -53,7 +56,9 @@ fn parse_regex_string(export_name: &str, regex: &str) -> String {
     }
 }
 
-fn parse_token_stream(tokens: TokenStream) -> Result<(String, String), CompileError> {
+fn parse_token_stream(
+    tokens: TokenStream,
+) -> Result<(String, String), CompileError> {
     if tokens.is_empty() {
         // TODO: Should return error describing empty token set
         return Err(CompileError::UnexpectedToken(0, 0));
@@ -101,7 +106,9 @@ fn parse_token_stream(tokens: TokenStream) -> Result<(String, String), CompileEr
     };
 
     // Strip surrounding string marks from RegEx literal
-    let regex = regex.as_str()[regex.find('"').unwrap() + 1..regex.rfind('"').unwrap()].to_string();
+    let regex = regex.as_str()
+        [regex.find('"').unwrap() + 1..regex.rfind('"').unwrap()]
+        .to_string();
 
     Ok((name, regex))
 }
