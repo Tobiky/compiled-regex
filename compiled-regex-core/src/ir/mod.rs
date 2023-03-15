@@ -1,6 +1,6 @@
 mod character;
 mod composite;
-mod repetition;
+mod repeat;
 
 use std::fmt::Display;
 
@@ -10,6 +10,7 @@ use crate::types::CompileError;
 
 use character::{character_ranges_to_array, Character};
 use composite::{Alternation, Concatination};
+use repeat::Repetition;
 
 pub const FIND_MATCH_TYPE_STRING: &'static str =
     "fn (&str) -> Option<(usize, usize)>";
@@ -24,7 +25,7 @@ pub const SUB_EXPR_LIST_NAME: &'static str = "SUB_EXPRS";
 /// General trait for Intermediate Representation
 pub trait IR: Sized {
     /// Parse the RegEx AST into an IR that can be used to compile to Rust code
-    fn parse(ast: &regex_syntax::ast::Ast) -> Result<Self, CompileError>;
+    fn parse(ast: &Ast) -> Result<Self, CompileError>;
     /// Generate the actual implementation that can be written as Rust code
     fn generate_impl(&self) -> Vec<RegExpImplementation>;
 }
@@ -74,7 +75,11 @@ impl Display for RegExpImplementation {
         // Only generate constant character range array if at least one
         // exists.
         let char_ranges = if let Some(r) = &self.ranges {
-            format!("\nconst CHAR_RANGES: {};\n", character_ranges_to_array(r))
+            format!("\nimpl {} {{{{
+                        const CHAR_RANGES: {};
+                    }}}}\n",
+                    self.name,
+                    character_ranges_to_array(r))
         } else {
             String::new()
         };
@@ -82,17 +87,10 @@ impl Display for RegExpImplementation {
         // Fill in the skeleton code with all implementations and values
         write!(
             f,
-            r#"pub struct {}();
-
-#[allow(dead_code)]
-impl {} {{{{
-    {}
-}}}}
-
-#[allow(non_camel_case_types)]
+            r#"#[allow(non_camel_case_types)] pub struct {}();
 impl compiled_regex::types::RegExp for {} {{{{
     const MIN_LEN: usize = {};
-
+    {}
     #[inline(always)]
     fn find_match_at(input: &str, offset: usize) -> Option<(usize, usize)> {{{{
         {}
@@ -115,9 +113,8 @@ impl compiled_regex::types::RegExp for {} {{{{
 }}}}"#,
             self.name,
             self.name,
-            char_ranges,
-            self.name,
             self.min_len,
+            char_ranges,
             self.find_match_at,
             self.find_match,
             self.is_match_at,
@@ -141,6 +138,8 @@ pub enum RegExp {
     Concat(Concatination),
     /// Branches of expressions
     Alt(Alternation),
+    /// Repetition of expressions
+    Rep(Repetition)
 }
 
 impl IR for RegExNode {
@@ -155,6 +154,7 @@ impl IR for RegExNode {
                 }
                 Ast::Concat(_) => RegExp::Concat(Concatination::parse(ast)?),
                 Ast::Alternation(_) => RegExp::Alt(Alternation::parse(ast)?),
+                Ast::Repetition(_) => RegExp::Rep(Repetition::parse(ast)?),
                 _ => todo!("todo RegExNode"),
             },
         ))
@@ -187,6 +187,8 @@ impl IR for RegExNode {
                 alt.append(&mut x.generate_impl());
                 alt
             }
+            // Repetition implementation is just itself
+            RegExp::Rep(x) => x.generate_impl(),
         }
     }
 }

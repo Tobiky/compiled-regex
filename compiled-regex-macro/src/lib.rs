@@ -33,7 +33,7 @@ fn parse_regex_string(export_name: &str, regex: &str) -> String {
                     let code = implementation.to_string();
 
                     // Surround the implementation with a module
-                    let code = format!("use compiled_regex::types::RegExp; #[allow(non_camel_case_types)] #[allow(non_snake_case)] mod __m{} {{{{\n{}\n}}}}",
+                    let code = format!("use compiled_regex::types::RegExp; #[allow(non_snake_case)] mod __m{} {{{{\n{}\n}}}}",
                                        name,
                                        code);
 
@@ -134,7 +134,7 @@ pub fn __parse_regex_generative_output(tokens: TokenStream) -> TokenStream {
     let (name, regex) = parse_token_stream(tokens).unwrap();
 
     // Parse the RegEx into actual code
-    let code = parse_regex_string(&name, &regex);
+    let code = parse_regex_string(&name, &regex).replace("{{", "{").replace("}}", "}");
 
     // Parse the code into Rust tokens
     return format!(r###"println!("{{}}", r##"{}"##)"###, code)
