@@ -1,7 +1,12 @@
-use compiled_regex::regex;
+#[allow(unused_imports)]
+use compiled_regex::parse_regex as regex;
+#[allow(unused_imports)]
+use compiled_regex::parse_regex_output;
 
-regex!(r"a");
+// regex!(Regex = "[abc]b");
 
 fn main() {
-    println!("{}", MyRegex::is_match("bbb"));
+    parse_regex_output!(MyRegex = "[abc]b|kab");
+
+    // println!("{:?}", Regex::is_match("kb"));
 }

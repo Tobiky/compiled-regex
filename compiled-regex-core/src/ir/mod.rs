@@ -74,23 +74,20 @@ impl Display for RegExpImplementation {
 
         // Only generate constant character range array if at least one
         // exists.
-        let char_ranges = if let Some(r) = &self.ranges {
-            format!("\nimpl {} {{{{
+        if let Some(r) = &self.ranges {
+            write!(f,
+                   "\nimpl {} {{{{
                         const CHAR_RANGES: {};
                     }}}}\n",
                     self.name,
-                    character_ranges_to_array(r))
-        } else {
-            String::new()
-        };
+                    character_ranges_to_array(r))?
+        }
 
         // Fill in the skeleton code with all implementations and values
-        write!(
-            f,
+        write!(f,
             r#"#[allow(non_camel_case_types)] pub struct {}();
 impl compiled_regex::types::RegExp for {} {{{{
     const MIN_LEN: usize = {};
-    {}
     #[inline(always)]
     fn find_match_at(input: &str, offset: usize) -> Option<(usize, usize)> {{{{
         {}
@@ -114,7 +111,6 @@ impl compiled_regex::types::RegExp for {} {{{{
             self.name,
             self.name,
             self.min_len,
-            char_ranges,
             self.find_match_at,
             self.find_match,
             self.is_match_at,
