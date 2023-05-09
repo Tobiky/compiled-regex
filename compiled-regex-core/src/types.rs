@@ -10,12 +10,3 @@ pub enum CompileError {
 }
 
 pub type Result<T> = core::result::Result<T, CompileError>;
-
-pub struct Implementation {
-    pub(crate) condition: String,
-    pub(crate) body: String,
-}
-
-pub struct RegExImplementation {
-    pub(crate) impls: Vec<Implementation>,
-}
