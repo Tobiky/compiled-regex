@@ -10,5 +10,7 @@ proc-macro = true
 
 [dependencies]
 compiled-regex-core = {path = "../compiled-regex-core"}
+hex = "0.4.3"
 itertools = "0.10.5"
 litrs = "0.3.0"
+sha2 = "0.10.6"

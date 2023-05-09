@@ -1,59 +1,59 @@
-use compiled_regex_core::ir::IR;
-use compiled_regex_core::ir::{self, RegExpImplementation};
-use compiled_regex_core::regex_syntax::ast::parse::Parser;
-
 use compiled_regex_core::types::CompileError;
 use proc_macro::TokenStream;
 use proc_macro::{self, TokenTree};
 
-use itertools::Itertools;
+use sha2::{Sha256, Digest};
+use hex::encode;
+
+use compiled_regex_core::{parse_regex as parse_regex_program, CHAR_GET_FUNC};
 
 use litrs::StringLit;
 
-fn parse_regex_string(export_name: &str, regex: &str) -> String {
-    // Try to parse the regex
-    match Parser::new().parse(regex) {
-        Ok(ast) => {
-            // Try to parse the regex AST and generate code
-            match ir::RegExNode::parse(&ast) {
-                Ok(reg) => {
-                    // Generate the implementation, get the name, and turn the impl into a string
-                    let impls = reg
-                        .generate_impl()
-                        .into_iter()
-                        .unique_by(|x| x.name.clone())
-                        .collect::<Vec<_>>();
-                    let implementation = impls
-                        .iter()
-                        .map(RegExpImplementation::to_string)
-                        .collect::<Vec<_>>()
-                        .join("\n\n");
-                    let name = impls.last().unwrap().name.clone();
+fn parse_regex_string(
+    export_name: &str,
+    regex: &str,
+) -> Result<String, CompileError> {
+    let implementation = parse_regex_program(regex)?;
 
-                    let code = implementation.to_string();
+    // keeping hash name to improve upon algorithm later
+    let mut hasher = Sha256::new();
 
-                    // Surround the implementation with a module
-                    let code = format!("use compiled_regex::types::RegExp; #[allow(non_snake_case)] mod __m{} {{{{\n{}\n}}}}",
-                                       name,
-                                       code);
+    hasher.update(&implementation.name);
+    hasher.update(&implementation.body);
 
-                    // Temporary anchor for the generated final type
-                    let code = format!(
-                        "{}\ntype {} = __m{}::{};",
-                        code, export_name, name, name
-                    );
+    let result = hasher.finalize();
+    let mut struct_name = encode(result);
+    struct_name.insert(0, 'S');
 
-                    return code;
-                }
-                // Parsing AST erred, panic and GTFO
-                Err(err) => panic!("{:?}", err),
-            }
-        }
-        // Could not parse the RegEx
-        Err(error) => {
-            panic!("{}", error)
-        }
-    }
+    let struct_name = &struct_name[0..16];
+
+    let code = format!("
+struct __{struct_name}();
+#[allow(unused_variables)]
+#[allow(nonstandard_style)]
+impl __{struct_name} {{
+    {}
+    {}
+
+#[allow(dead_code)]
+fn is_match(input: &str) -> bool {{
+    let mut index = 0; 
+    for ch in input.chars() {{
+        let mut byte_index = index;
+        if Self::{}(input, &mut byte_index) {{
+            return true
+        }}
+        index += ch.len_utf8();
+    }}
+    return false
+}}
+}}
+type {export_name} = __{struct_name};",
+    CHAR_GET_FUNC,
+    implementation.to_string().replace("\n", "\n    "),
+    implementation.name);
+
+    Ok(code)
 }
 
 fn parse_token_stream(
@@ -61,7 +61,7 @@ fn parse_token_stream(
 ) -> Result<(String, String), CompileError> {
     if tokens.is_empty() {
         // TODO: Should return error describing empty token set
-        return Err(CompileError::UnexpectedToken(0, 0));
+        return Err(CompileError::TODO);
     }
 
     let mut iter = tokens.into_iter();
@@ -74,11 +74,11 @@ fn parse_token_stream(
                 s.to_string()
             } else {
                 // TODO: Specify illegal literal type usage
-                return Err(CompileError::UnexpectedToken(0, 0));
+                return Err(CompileError::TODO);
             }
         }
         // TODO: Specifiy that identity or name is needed
-        _ => return Err(CompileError::UnexpectedToken(0, 0)),
+        _ => return Err(CompileError::TODO),
     };
 
     // Make sure there is a delimiter inbetween
@@ -88,7 +88,7 @@ fn parse_token_stream(
         // TODO: Specify that some punctuation is needed
         // currently can be any, not sure if it should be forced
         // to anything specific.
-        return Err(CompileError::UnexpectedToken(0, 0));
+        return Err(CompileError::TODO);
     }
 
     // Get the regex string literal
@@ -98,11 +98,11 @@ fn parse_token_stream(
                 s.to_string()
             } else {
                 // TODO: Specify illegal literal type usage
-                return Err(CompileError::UnexpectedToken(0, 0));
+                return Err(CompileError::TODO);
             }
         }
         // TODO: Specifiy that str literal is needed
-        _ => return Err(CompileError::UnexpectedToken(0, 0)),
+        _ => return Err(CompileError::TODO),
     };
 
     // Strip surrounding string marks from RegEx literal
@@ -121,20 +121,22 @@ pub fn parse_regex(tokens: TokenStream) -> TokenStream {
     // format!(r###"println!("{{}}", r##"{:?}"##)"###, (name, regex)).parse().unwrap()
 
     // Parse the RegEx into actual code
-    let code = parse_regex_string(&name, &regex);
+    let code = parse_regex_string(&name, &regex).unwrap();
 
     // Parse the code into Rust tokens
-    return code.replace("{{", "{").replace("}}", "}").parse().unwrap();
+    return code.parse().unwrap();
 }
 
 #[proc_macro]
-pub fn __parse_regex_generative_output(tokens: TokenStream) -> TokenStream {
+pub fn __parse_regex_generative_output(
+    tokens: TokenStream,
+) -> TokenStream {
     // Parse the tokens into a name and a RegEx literal
     // TODO: CompileError report
     let (name, regex) = parse_token_stream(tokens).unwrap();
 
     // Parse the RegEx into actual code
-    let code = parse_regex_string(&name, &regex).replace("{{", "{").replace("}}", "}");
+    let code = parse_regex_string(&name, &regex).unwrap();
 
     // Parse the code into Rust tokens
     return format!(r###"println!("{{}}", r##"{}"##)"###, code)
