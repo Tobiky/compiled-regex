@@ -104,6 +104,7 @@ fn try_parse_program<'a>(
     // 0008 Match(0)
     while i < end {
         let inst = &instructions[i];
+        #[cfg(debug_assertions)]
         println!("i={:04}: {:?}", i, inst);
 
         match inst {
