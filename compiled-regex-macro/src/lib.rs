@@ -32,20 +32,12 @@ struct __{struct_name}();
 #[allow(unused_variables)]
 #[allow(nonstandard_style)]
 impl __{struct_name} {{
-    {}
-    {}
+    {0}
+    {1}
 
 #[allow(dead_code)]
 fn is_match(input: &str) -> bool {{
-    let mut index = 0; 
-    for ch in input.chars() {{
-        let mut byte_index = index;
-        if Self::{}(input, &mut byte_index) {{
-            return true
-        }}
-        index += ch.len_utf8();
-    }}
-    return false
+    Self::{2}(input, &mut 0)
 }}
 }}
 type {export_name} = __{struct_name};",
