@@ -15,12 +15,15 @@ fn parse_regex_string(
     regex: &str,
 ) -> Result<String, CompileError> {
     let implementation = parse_regex_program(regex)?;
+    let body = implementation.to_string();
 
     // keeping hash name to improve upon algorithm later
     let mut hasher = Sha256::new();
 
+    hasher.update(regex);
+    hasher.update(export_name);
     hasher.update(&implementation.name);
-    hasher.update(&implementation.body);
+    hasher.update(&body);
 
     let result = hasher.finalize();
     let mut struct_name = encode(result);
@@ -41,7 +44,7 @@ impl __{struct_name} {{
 }}
 type {export_name} = __{struct_name};",
     CHAR_GET_FUNC.replace("\n", "\n    "),
-    implementation.to_string().replace("\n", "\n    "),
+    body.replace("\n", "\n    "),
     implementation.name);
 
     Ok(code)

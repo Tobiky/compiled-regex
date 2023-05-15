@@ -19,3 +19,17 @@ compiled-regex-macro = {path = "./compiled-regex-macro"}
 [dev-dependencies]
 criterion = "0.4.0"
 plotters = "0.3.4"
+regex = { version = "1.8.1", default-features = false, features = ["std", "unicode"] }
+
+
+[[bench]]
+name = "simplistic"
+harness = false
+
+[[bench]]
+name = "continuous"
+harness = false
+
+[[bench]]
+name = "test_data"
+harness = false
