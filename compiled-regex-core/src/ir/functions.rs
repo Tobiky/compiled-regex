@@ -99,7 +99,7 @@ impl Display for ProgramImplementation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.children.iter().try_for_each(|x| write!(f, "{}",x))?;
         write!(f,
-            "\n#[inline(always)]\nfn {0}({INPUT_PARAM_NAME}: {INPUT_PARAM_TYPE}, {INDEX_PARAM_NAME}: {INDEX_PARAM_TYPE}) -> bool {{\n    {1}\n}}\n",
+            /*\n#[inline(auto)]*/"\nfn {0}({INPUT_PARAM_NAME}: {INPUT_PARAM_TYPE}, {INDEX_PARAM_NAME}: {INDEX_PARAM_TYPE}) -> bool {{\n    {1}\n}}\n",
             self.name,
             self.body.replace("\n", "\n    "))
     }
