@@ -1,10 +1,14 @@
+#![allow(dead_code)]
 use regex::internal::Compiler;
 use regex::internal::Inst;
 use regex_syntax::Parser;
 
 mod ir;
+mod parser;
 pub mod types;
 pub use ir::functions::CHAR_GET_FUNC;
+
+use parser::parse;
 
 pub fn parse_regex(
     input: &str,
@@ -26,7 +30,9 @@ pub fn parse_regex(
 fn parse_program<'lt>(
     instructions: &'lt [Inst],
 ) -> Result<ir::functions::ProgramImplementation, types::CompileError> {
-    let program = ir::sections::Program::try_parse(instructions)?;
+    // let program = ir::sections::Program::try_parse(instructions)?;
 
-    ir::functions::ProgramImplementation::try_parse(&program)
+    // ir::functions::ProgramImplementation::try_parse(&program)
+    
+    Ok(parse(instructions))
 }

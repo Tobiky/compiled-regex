@@ -140,7 +140,7 @@ fn try_parse_program<'a>(
 
                     // Update index
                     i = end;
-                    unused_insts_since = i + 1;
+                    unused_insts_since = i;
                 }
                 // No loop; alternation (|), zero or one (?), or
                 // custom quantity ({1,3})
@@ -199,8 +199,8 @@ fn try_parse_program<'a>(
                     sections.push(section);
 
                     // Update index
-                    i = program_b_end - 1;
-                    unused_insts_since = i + 1;
+                    i = program_b_end;
+                    unused_insts_since = i;
                 }
             }
 

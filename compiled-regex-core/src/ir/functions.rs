@@ -1,4 +1,5 @@
-use std::{fmt::Display, time::{SystemTime, UNIX_EPOCH}};
+#[allow(unused_imports)]
+use std::{fmt::Display, time::{SystemTime, UNIX_EPOCH}, char::EscapeUnicode};
 
 use regex::internal::Inst;
 
@@ -16,31 +17,44 @@ pub struct ProgramImplementation {
     pub children: Vec<ProgramImplementation>,
 }
 
-const INPUT_PARAM_NAME: &'static str = "input";
-const INPUT_PARAM_TYPE: &'static str = "&str";
-const INDEX_PARAM_NAME: &'static str = "index";
-const INDEX_PARAM_TYPE_INNER: &'static str = "usize";
-const INDEX_PARAM_TYPE: &'static str = formatcp!("&mut {INDEX_PARAM_TYPE_INNER}");
-const CHAR_GET_FUNC_NAME: &'static str = "__get_char";
+pub const INPUT_PARAM_NAME: &'static str = "input";
+pub const INPUT_PARAM_TYPE: &'static str = "&str";
+pub const INDEX_PARAM_NAME: &'static str = "index";
+pub const INDEX_PARAM_TYPE_INNER: &'static str = "usize";
+pub const INDEX_PARAM_TYPE: &'static str = formatcp!("&mut {INDEX_PARAM_TYPE_INNER}");
+pub const CHAR_GET_FUNC_NAME: &'static str = "__get_char";
 // public since its faster than attaching it as a child to the root ProgramImplementation
 pub const CHAR_GET_FUNC: &'static str =  formatcp!(
-"fn {CHAR_GET_FUNC_NAME}({INPUT_PARAM_NAME}: {INPUT_PARAM_TYPE}, {INDEX_PARAM_NAME}: {INDEX_PARAM_TYPE}) -> char {{
-    {INPUT_PARAM_NAME}[*{INDEX_PARAM_NAME}..].chars().next().unwrap()
+"fn {CHAR_GET_FUNC_NAME}({INPUT_PARAM_NAME}: {INPUT_PARAM_TYPE}, {INDEX_PARAM_NAME}: {INDEX_PARAM_TYPE}) -> Option<char> {{
+    {INPUT_PARAM_NAME}[*{INDEX_PARAM_NAME}..].chars().next()
 }}\n");
-const INNER_INDEX_NAME: &'static str = "inner_index";
-const INNER_INDEX_INIT: &'static str = formatcp!("let mut {INNER_INDEX_NAME}: {INDEX_PARAM_TYPE_INNER} = *{INDEX_PARAM_NAME};");
-const INNER_INDEX_END: &'static str = formatcp!("*{INDEX_PARAM_NAME} = {INNER_INDEX_NAME};");
+pub const INNER_INDEX_NAME: &'static str = "inner_index";
+pub const INNER_INDEX_INIT: &'static str = formatcp!("let mut {INNER_INDEX_NAME}: {INDEX_PARAM_TYPE_INNER} = *{INDEX_PARAM_NAME};");
+pub const INNER_INDEX_END: &'static str = formatcp!("*{INDEX_PARAM_NAME} = {INNER_INDEX_NAME};");
 
 static mut PROG_COUNTER: usize = 0;
 
 macro_rules! hash_name {
+    ($prefix:literal, $($x:expr),* ) => {
+        {
+            use sha2::{Digest, Sha256};
+
+            let mut hasher = Sha256::new();
+
+            $(
+                hasher.update($x);
+            )*
+
+            hash_name!(hasher, $prefix)
+        }
+    };
     ($hasher:ident, $prefix:literal) => {
         {
             let result = $hasher.finalize();
             let mut name = hex::encode(result);
             name.insert(0, $prefix);
             name.insert_str(0, "__");
-            String::from(&name[0..16 + 3])
+            name
         }
     };
     ($hasher:ident) => {
@@ -53,11 +67,22 @@ macro_rules! time_name {
         time_name!('F')
     };
     ($prefix:literal) => {
-        format!("__{}{}", $prefix, SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis())
+        format!("__{}{}", $prefix, std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis())
     };
 }
 
+pub(crate) use hash_name;
+pub(crate) use time_name;
+
 impl<'a> ProgramImplementation {
+    pub fn empty() -> Self {
+        ProgramImplementation {
+            name: String::new(),
+            body: String::new(),
+            children: vec![]
+        }
+    }
+
     pub(crate) fn try_parse(
         program: &Program,
     ) -> Result<ProgramImplementation> {
@@ -74,9 +99,9 @@ impl Display for ProgramImplementation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.children.iter().try_for_each(|x| write!(f, "{}",x))?;
         write!(f,
-            "\n#[inline(always)]\nfn {0}({INPUT_PARAM_NAME}: {INPUT_PARAM_TYPE}, {INDEX_PARAM_NAME}: {INDEX_PARAM_TYPE}) -> bool {{\n{1}\n}}\n",
+            "\n#[inline(always)]\nfn {0}({INPUT_PARAM_NAME}: {INPUT_PARAM_TYPE}, {INDEX_PARAM_NAME}: {INDEX_PARAM_TYPE}) -> bool {{\n    {1}\n}}\n",
             self.name,
-            self.body)
+            self.body.replace("\n", "\n    "))
     }
 }
 
@@ -92,6 +117,69 @@ fn character_range_to_literal(range: &[(char, char)], literal_name: &str) -> Str
     format!("const {literal_name}: [(char, char); {}] = [{}];\n", ranges.len(), ranges.join(", "))
 }
 
+pub fn instruction_code(
+    instruction: &Inst,
+) -> String {
+    match instruction {
+        // Single Character match
+        Inst::Char(x) => {
+            format!("
+// From: {instruction:?}
+if Self::{CHAR_GET_FUNC_NAME}({INPUT_PARAM_NAME}, &mut {INNER_INDEX_NAME}) != Some('{0}') {{
+    return false
+}}
+{INNER_INDEX_NAME} += {1};", x.c.escape_unicode(), x.c.len_utf8())
+        },
+
+        // Range of Characters match
+        Inst::Ranges(x) => {
+            let mut hasher = Sha256::new();
+
+            x.ranges.iter().for_each(|&(start, end)| {
+                hasher.update((start as u32).to_ne_bytes());
+                hasher.update((end as u32).to_ne_bytes());
+            });
+
+            let range_name = hash_name!(hasher, 'R');
+
+            format!("
+// From: {instruction:?}
+{0}
+let {2} = Self::{CHAR_GET_FUNC_NAME}({INPUT_PARAM_NAME}, &mut {INNER_INDEX_NAME});
+if {2}.is_some() {{
+    let {2} = {2}.unwrap();
+    if let Some((start, _)) = {1}.iter().find(|(start, end)| *start <= {2} && {2} <= *end) {{
+        {INNER_INDEX_NAME} += start.len_utf8();
+    }} else {{
+        return false
+    }}
+}} else {{
+    return false
+}}
+", character_range_to_literal(&x.ranges, &range_name), range_name, time_name!('V'))
+        },
+
+        // Range of Bytes
+        // can be simplified if indexed byte is drawn out to a variable
+        Inst::Bytes(x) => format!("
+// From: {instruction:?}
+if {}u8 <= {INPUT_PARAM_NAME}.as_bytes()[INNER_INDEX_NAME] && {INPUT_PARAM_NAME}.as_bytes()[INNER_INDEX_NAME] <= {}u8 {{
+    return false
+}}
+{INDEX_PARAM_NAME} += 1;\n",
+            x.start, x.end),
+        // match is only used for regex sets
+        Inst::Match(_) |
+        // save is used for location saving
+        Inst::Save(_) |
+        // zero-width assertions, might not be necessary for our scope
+        Inst::EmptyLook(_) => 
+            String::new(),
+        x => panic!("try_parse_instructions: {x:?} did not expect instruction type.")
+    }
+}
+
+
 fn try_parse_instructions(
     instructions: &[Inst],
 ) -> Result<ProgramImplementation> {
@@ -100,54 +188,7 @@ fn try_parse_instructions(
         PROG_COUNTER
     };
 
-    let mut parts = instructions.iter().map(|instruction| {
-        match instruction {
-            Inst::Char(x) => format!("
-    // From: {instruction:?}
-    if Self::{CHAR_GET_FUNC_NAME}({INPUT_PARAM_NAME}, &mut {INNER_INDEX_NAME}) != '{0}' {{
-        return false
-    }}
-    {INNER_INDEX_NAME} += {1};\n", x.c.escape_unicode(), x.c.len_utf8()),
-            Inst::Ranges(x) => {
-                let mut hasher = Sha256::new();
-
-                x.ranges.iter().for_each(|&(start, end)| {
-                    hasher.update((start as u32).to_ne_bytes());
-                    hasher.update((end as u32).to_ne_bytes());
-                });
-
-                let range_name = hash_name!(hasher, 'R');
-
-                // all character within range might be same length (unlikely), which can be
-                // used to optimize the index increment.
-                format!("
-    // From: {instruction:?}
-    {0}
-    let {2} = Self::{CHAR_GET_FUNC_NAME}({INPUT_PARAM_NAME}, &mut {INNER_INDEX_NAME});
-    if let Some((start, _)) = {1}.iter().find(|(start, end)| *start <= {2} && {2} <= *end) {{
-        {INNER_INDEX_NAME} += start.len_utf8();
-    }} else {{
-        return false
-    }}\n", character_range_to_literal(&x.ranges, &range_name), range_name, time_name!('V'))
-            },
-            // can be simplified if indexed byte is drawn out to a variable
-            Inst::Bytes(x) => format!("
-    // From: {instruction:?}
-    if {}u8 <= {INPUT_PARAM_NAME}.as_bytes()[INNER_INDEX_NAME] && {INPUT_PARAM_NAME}.as_bytes()[INNER_INDEX_NAME] <= {}u8 {{
-        return false
-    }}
-    {INDEX_PARAM_NAME} += 1;\n",
-                x.start, x.end),
-            // match is only used for regex sets
-            Inst::Match(_) |
-            // save is used for location saving
-            Inst::Save(_) |
-            // zero-width assertions, might not be necessary for our scope
-            Inst::EmptyLook(_) => 
-                String::new(),
-            x => panic!("try_parse_instructions: {x:?} did not expect instruction type.")
-        }
-    }).collect::<Vec<_>>();
+    let mut parts = instructions.iter().map(instruction_code).collect::<Vec<_>>();
 
     let mut init = String::from(INNER_INDEX_INIT);
     init.insert_str(0, "    ");

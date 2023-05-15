@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use compiled_regex_core::types::CompileError;
 use proc_macro::TokenStream;
 use proc_macro::{self, TokenTree};
@@ -25,8 +26,6 @@ fn parse_regex_string(
     let mut struct_name = encode(result);
     struct_name.insert(0, 'S');
 
-    let struct_name = &struct_name[0..16];
-
     let code = format!("
 struct __{struct_name}();
 #[allow(unused_variables)]
@@ -35,13 +34,13 @@ impl __{struct_name} {{
     {0}
     {1}
 
-#[allow(dead_code)]
-fn is_match(input: &str) -> bool {{
-    Self::{2}(input, &mut 0)
-}}
+    #[allow(dead_code)]
+    fn is_match(input: &str) -> bool {{
+        Self::{2}(input, &mut 0)
+    }}
 }}
 type {export_name} = __{struct_name};",
-    CHAR_GET_FUNC,
+    CHAR_GET_FUNC.replace("\n", "\n    "),
     implementation.to_string().replace("\n", "\n    "),
     implementation.name);
 
