@@ -99,7 +99,7 @@ impl Display for ProgramImplementation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.children.iter().try_for_each(|x| write!(f, "{}",x))?;
         write!(f,
-            /*\n#[inline(auto)]*/"\nfn {0}({INPUT_PARAM_NAME}: {INPUT_PARAM_TYPE}, {INDEX_PARAM_NAME}: {INDEX_PARAM_TYPE}) -> bool {{\n    {1}\n}}\n",
+            /*\n#[inline(always)]*/"\nfn {0}({INPUT_PARAM_NAME}: {INPUT_PARAM_TYPE}, {INDEX_PARAM_NAME}: {INDEX_PARAM_TYPE}) -> bool {{\n    {1}\n}}\n",
             self.name,
             self.body.replace("\n", "\n    "))
     }
@@ -148,8 +148,8 @@ if Self::{CHAR_GET_FUNC_NAME}({INPUT_PARAM_NAME}, &mut {INNER_INDEX_NAME}) != So
 let {2} = Self::{CHAR_GET_FUNC_NAME}({INPUT_PARAM_NAME}, &mut {INNER_INDEX_NAME});
 if {2}.is_some() {{
     let {2} = {2}.unwrap();
-    if let Some((start, _)) = {1}.iter().find(|(start, end)| *start <= {2} && {2} <= *end) {{
-        {INNER_INDEX_NAME} += start.len_utf8();
+    if {1}.iter().find(|(start, end)| *start <= {2} && {2} <= *end).is_some() {{
+        {INNER_INDEX_NAME} += {2}.len_utf8();
     }} else {{
         return false
     }}

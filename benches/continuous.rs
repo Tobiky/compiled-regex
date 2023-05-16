@@ -4,7 +4,8 @@ use regex::Regex;
 use compiled_regex::parse_regex;
 
 // max 'a' repeat string size
-const N: usize = 128;
+// 16 is longest anyhow
+const N: usize = 32;
 
 // n = 1
 pub fn compiled_n1(c: &mut Criterion) {
