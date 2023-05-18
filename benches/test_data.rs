@@ -38,7 +38,7 @@ pub fn compiled_intermediate(c: &mut Criterion) {
     let lines = get_lines();
 
     // more usage of groups, alternation, and quantification
-    parse_regex!(Rgx = "^(?:[^:/?#]+:)?(?://(?:[^/?#]*\\.)?)?kissanimeonline\\.com/driectlink");
+    parse_regex!(Rgx = "^/(?:[^\\w\\d_\\-\\.%]|\\$)https?:\\/\\/s3\\..*\\..*\\.amazonaws\\.com\\/[a-f0-9]{45,}\\/[a-f,0-9]{8,10}");
 
     c.bench_with_input(BenchmarkId::new("compiled intermediate", lines.len()), &lines, |b, ls| {
         b.iter(|| for line in ls { Rgx::is_match(line); })
@@ -49,7 +49,7 @@ pub fn interpreted_intermediate(c: &mut Criterion) {
     let lines = get_lines();
 
     // more usage of groups, alternation, and quantification
-    let regex = Regex::new("^(?:[^:/?#]+:)?(?://(?:[^/?#]*\\.)?)?kissanimeonline\\.com/driectlink").unwrap();
+    let regex = Regex::new("^/(?:[^\\w\\d_\\-\\.%]|\\$)https?:\\/\\/s3\\..*\\..*\\.amazonaws\\.com\\/[a-f0-9]{45,}\\/[a-f,0-9]{8,10}").unwrap();
 
     c.bench_with_input(BenchmarkId::new("interpreted intermediate", lines.len()), &lines, |b, ls| {
         b.iter(|| for line in ls { regex.is_match(line); })
@@ -60,7 +60,7 @@ pub fn compiled_complex(c: &mut Criterion) {
     let lines = get_lines();
 
     // heavy usage of groups, alternation, and quantification
-    parse_regex!(Rgx = "/(?:[^\\w\\d_\\-\\.%]|\\$)https?:\\/\\/s3\\..*\\..*\\.amazonaws\\.com\\/[a-f0-9]{45,}\\/[a-f,0-9]{8,10}");
+    parse_regex!(Rgx = "^(?:[^:/?#]+:)?(?://(?:[^/?#]*\\.)?)?kissanimeonline\\.com/driectlink");
 
     c.bench_with_input(BenchmarkId::new("compiled complex", lines.len()), &lines, |b, ls| {
         b.iter(|| for line in ls { Rgx::is_match(line); })
@@ -71,7 +71,7 @@ pub fn interpreted_complex(c: &mut Criterion) {
     let lines = get_lines();
 
     // heavy usage of groups, alternation, and quantification
-    let regex = Regex::new("/(?:[^\\w\\d_\\-\\.%]|\\$)https?:\\/\\/s3\\..*\\..*\\.amazonaws\\.com\\/[a-f0-9]{45,}\\/[a-f,0-9]{8,10}").unwrap();
+    let regex = Regex::new("^(?:[^:/?#]+:)?(?://(?:[^/?#]*\\.)?)?kissanimeonline\\.com/driectlink").unwrap();
 
     c.bench_with_input(BenchmarkId::new("interpreted complex", lines.len()), &lines, |b, ls| {
         b.iter(|| for line in ls { regex.is_match(line); })
